@@ -49,8 +49,9 @@ The sign is 220 × 117 mm, so it fits the X1C's 256 × 256 mm plate.
 4. In the Objects list, set each part's filament:
    `navy -> 1`, `silver -> 2`, `blue -> 3`, `orange -> 4`.
 5. Keep the sign flat, back side down (the default). No supports and no brim needed.
-6. Slice, check the preview, and print. Flush volumes are the default; for ~4 color
-   changes on a small area, "Flush into objects' infill" saves some waste.
+6. Slice, check the preview, and print. The AMS swaps filament on every layer
+   of the lettering and logo (4.0 to 5.6 mm), so expect some purge waste; turning on
+   "Flush into objects' infill" in the object settings reduces it.
 
 No AMS? Load only `sir_designs_single_color.stl`, or use the navy/silver/navy color
 swaps listed above (right-click the layer slider at 3.0 mm and 4.0 mm -> *Add color change*).
