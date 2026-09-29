@@ -35,6 +35,26 @@ relief, so it still reads well. Painting the raised parts afterwards works too.
 
 **Mounting:** four 4.5 mm holes in the navy border fit #8 / M4 screws.
 
+## Bambu Lab X1C (with AMS)
+
+Download `sir_designs_x1c.zip` (the 4 color STLs plus this README).
+The sign is 220 × 117 mm, so it fits the X1C's 256 × 256 mm plate.
+
+1. Load filament into the AMS: **1 navy, 2 silver/gray (or white), 3 sky blue, 4 orange**.
+   Bambu PLA Basic works: Cobalt Blue or Navy, Silver or Light Gray, Cyan/Blue, Orange.
+2. In Bambu Studio choose **Bambu Lab X1 Carbon, 0.4 mm nozzle**, plate **Textured PEI**,
+   process **0.20 mm Standard**.
+3. Select all 4 STLs and drag them in together. When asked
+   *"Load these files as a single object with multiple parts?"* click **Yes**.
+4. In the Objects list, set each part's filament:
+   `navy -> 1`, `silver -> 2`, `blue -> 3`, `orange -> 4`.
+5. Keep the sign flat, back side down (the default). No supports and no brim needed.
+6. Slice, check the preview, and print. Flush volumes are the default; for ~4 color
+   changes on a small area, "Flush into objects' infill" saves some waste.
+
+No AMS? Load only `sir_designs_single_color.stl`, or use the navy/silver/navy color
+swaps listed above (right-click the layer slider at 3.0 mm and 4.0 mm -> *Add color change*).
+
 ## Changing the model
 
 Edit the settings at the top of `generate.py` (overall width, layer heights,
