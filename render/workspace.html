@@ -1,0 +1,139 @@
+<!doctype html><meta charset="utf-8"><title>3D Workspace</title>
+<style>html,body{margin:0;background:#0b0c10}canvas{display:block}</style>
+<canvas id="c" width="1920" height="1200"></canvas>
+<script>
+const c=document.getElementById('c'),g=c.getContext('2d');
+const W=c.width,H=c.height;
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+const rgb=a=>`rgb(${a.map(v=>Math.round(Math.max(0,Math.min(255,v)))).join(',')})`;
+function height(u,v){
+  let h=0.55*Math.exp(-((u-.62)**2/.05+(v-.35)**2/.06))+0.4*Math.exp(-((u-.25)**2/.03+(v-.3)**2/.04));
+  h+=0.08*Math.sin(u*14)*Math.sin(v*11)+0.04*Math.sin(u*31+v*23);
+  h*=Math.min(1,v*2.4); // flat lake/foreground
+  return Math.max(0,h)+0.02*(1-v);
+}
+function color(u,v){
+  const h=height(u,v);
+  if(v>.72) return mix([40,90,130],[150,200,225],(v-.72)*3);      // lake
+  if(h>.5) return mix([200,205,215],[250,250,255],(h-.5)*3);      // snow
+  if(h>.2) return mix([95,90,85],[130,120,105],(h-.2)*3);         // rock
+  return mix([40,95,50],[110,150,70],h*5);                         // forest
+}
+// backdrop
+let bg=g.createRadialGradient(W*.5,H*.45,100,W*.5,H*.5,W*.75);
+bg.addColorStop(0,'#2a2f3a');bg.addColorStop(1,'#07080b');g.fillStyle=bg;g.fillRect(0,0,W,H);
+// desk glow
+let fl=g.createLinearGradient(0,H*.88,0,H);fl.addColorStop(0,'#151821');fl.addColorStop(1,'#050608');
+g.fillStyle=fl;g.fillRect(0,H*.88,W,H*.12);
+// monitor
+const mx=210,my=70,mw=1500,mh=900;
+g.fillStyle='#000';g.shadowColor='rgba(120,170,255,.35)';g.shadowBlur=90;
+g.beginPath();g.roundRect(mx,my,mw,mh,26);g.fill();g.shadowBlur=0;
+let bz=g.createLinearGradient(mx,my,mx,my+mh);bz.addColorStop(0,'#2b2e36');bz.addColorStop(1,'#101116');
+g.fillStyle=bz;g.beginPath();g.roundRect(mx,my,mw,mh,26);g.fill();
+// stand
+let st=g.createLinearGradient(W/2-80,0,W/2+80,0);st.addColorStop(0,'#1a1c22');st.addColorStop(.5,'#4a4e58');st.addColorStop(1,'#1a1c22');
+g.fillStyle=st;g.fillRect(W/2-70,my+mh,140,120);
+g.beginPath();g.ellipse(W/2,H*.915,260,26,0,0,7);g.fill();
+// screen
+const sx=mx+22,sy=my+22,sw=mw-44,sh=mh-44;
+g.save();g.beginPath();g.roundRect(sx,sy,sw,sh,10);g.clip();
+g.fillStyle='#23262d';g.fillRect(sx,sy,sw,sh);
+// viewport
+const vx=sx+70,vy=sy+44,vw=sw-70-300,vh=sh-44-170;
+let vg=g.createLinearGradient(0,vy,0,vy+vh);vg.addColorStop(0,'#3b4049');vg.addColorStop(1,'#2a2d34');
+g.fillStyle=vg;g.fillRect(vx,vy,vw,vh);
+g.save();g.beginPath();g.rect(vx,vy,vw,vh);g.clip();
+const cx=vx+vw/2,cy=vy+vh*.62;
+const yaw=-.62,pitch=.95,S=vw*.43;
+function P(u,v,h){
+  let x=(u-.5)*2,z=(v-.5)*1.5,y=h*0.9;
+  let X=x*Math.cos(yaw)-z*Math.sin(yaw),Z=x*Math.sin(yaw)+z*Math.cos(yaw);
+  let Y=y*Math.cos(pitch)-Z*Math.sin(pitch)*0+0; 
+  let sy2=-y*Math.cos(pitch)*1.0+Z*Math.sin(pitch)*.55;
+  let k=1/(1+Z*.12);
+  return [cx+X*S*k,cy+sy2*S*k+ -20];
+}
+// ground grid
+g.strokeStyle='rgba(150,155,165,.25)';g.lineWidth=1;
+for(let i=-10;i<=10;i++){
+  const a=i/10;let p1=P(.5+a*.9,-.15,0),p2=P(.5+a*.9,1.15,0);
+  g.beginPath();g.moveTo(...p1);g.lineTo(...p2);g.stroke();
+  p1=P(-.4,.5+a*.65,0);p2=P(1.4,.5+a*.65,0);
+  g.beginPath();g.moveTo(...p1);g.lineTo(...p2);g.stroke();
+}
+// grey axes
+g.lineWidth=2;
+[[1.3,0,0,'X'],[0,0,1.2,'Z']].forEach(()=>{});
+g.strokeStyle='rgba(190,194,202,.55)';
+let o=P(-.05,-.05,0);
+[[1.1,-.05,0],[-.05,1.05,0],[-.05,-.05,.8]].forEach(a=>{let p=P(...a);g.beginPath();g.moveTo(...o);g.lineTo(...p);g.stroke();});
+// mesh
+const NU=64,NV=44,split=.5;
+function vtx(i,j){const u=i/NU,v=j/NV;return [u,v,height(u,v)];}
+for(let j=NV-1;j>=0;j--){            // back-to-front
+  for(let i=0;i<NU;i++){
+    const q=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]].map(([a,b])=>{const [u,v,h]=vtx(a,b);return P(u,v,h);});
+    const um=(i+.5)/NU,vm=(j+.5)/NV;
+    g.beginPath();q.forEach((p,k)=>k?g.lineTo(...p):g.moveTo(...p));g.closePath();
+    // sweeping texture boundary, slightly diagonal & soft
+    const edge=split+(vm-.5)*.12;
+    if(um>edge){
+      const col=color(um,vm);const shade=0.8+0.5*(height(um+.02,vm)-height(um-.02,vm));
+      g.fillStyle=rgb(col.map(v=>v*shade));g.fill();
+      g.strokeStyle='rgba(0,0,0,.12)';g.lineWidth=.5;g.stroke();
+    }else{
+      g.fillStyle='rgba(30,33,40,.85)';g.fill();
+      g.strokeStyle=um>edge-.05?'rgba(255,170,60,.9)':'rgba(120,200,255,.75)';g.lineWidth=1;g.stroke();
+    }
+  }
+}
+// vertices
+g.fillStyle='#ffd27a';
+for(let j=0;j<=NV;j+=2)for(let i=0;i<=NU;i+=2){
+  const [u,v,h]=vtx(i,j);if(u>split+(v-.5)*.12)continue;
+  const p=P(u,v,h);g.beginPath();g.arc(p[0],p[1],2.2,0,7);g.fill();
+}
+// selected-vertex gizmo
+const sv=P(.38,.32,height(.38,.32));
+g.lineWidth=3;[['#ddd',40,0],['#aaa',0,-40],['#888',-28,28]].forEach(([c2,dx,dy])=>{g.strokeStyle=c2;g.beginPath();g.moveTo(...sv);g.lineTo(sv[0]+dx,sv[1]+dy);g.stroke();});
+g.fillStyle='#fff';g.beginPath();g.arc(...sv,6,0,7);g.fill();
+g.restore();
+// viewport chrome
+g.fillStyle='rgba(255,255,255,.65)';g.font='15px monospace';
+g.fillText('Perspective  |  Verts 2,925  Faces 2,816  |  Displace: heightmap 0.90',vx+14,vy+26);
+g.strokeStyle='#4b505b';g.lineWidth=1;g.strokeRect(vx,vy,vw,vh);
+// top bar
+g.fillStyle='#1b1d23';g.fillRect(sx,sy,sw,44);
+g.fillStyle='#cfd3da';g.font='16px sans-serif';
+['File','Edit','Mesh','Texture','Render','Window'].forEach((t,i)=>g.fillText(t,sx+24+i*86,sy+28));
+// left toolbar
+g.fillStyle='#1b1d23';g.fillRect(sx,sy+44,70,sh-44);
+for(let i=0;i<8;i++){g.fillStyle=i==2?'#ff9f2e':'#3a3e48';g.beginPath();g.roundRect(sx+14,sy+66+i*62,42,42,8);g.fill();}
+// right panel
+const rx=sx+sw-300;g.fillStyle='#1f2229';g.fillRect(rx,sy+44,300,sh-44);
+g.fillStyle='#cfd3da';g.font='bold 15px sans-serif';g.fillText('Displacement Source',rx+20,sy+78);
+// 2D photo thumbnail
+const tw=260,th=170,tx=rx+20,ty=sy+92;
+for(let y=0;y<th;y++)for(let x=0;x<tw;x+=2){
+  const u=x/tw,v=y/th; let sky=v<.28;
+  g.fillStyle=sky?rgb(mix([120,170,230],[250,200,160],v*3.5)):rgb(color(u,(v-.2)/.8));
+  g.fillRect(tx+x,ty+y,2,1);
+}
+g.strokeStyle='#ff9f2e';g.strokeRect(tx,ty,tw,th);
+g.fillStyle='#8a909c';g.font='13px sans-serif';
+['Scale  0.90','Midlevel  0.00','Subdivisions  64 × 44','UV  Planar Z'].forEach((t,i)=>{g.fillText(t,rx+20,ty+th+34+i*30);
+  g.fillStyle='#3a3e48';g.fillRect(rx+20,ty+th+42+i*30,260,4);g.fillStyle='#ff9f2e';g.fillRect(rx+20,ty+th+42+i*30,90+i*30,4);g.fillStyle='#8a909c';});
+// timeline
+g.fillStyle='#1b1d23';g.fillRect(sx+70,sy+sh-170,sw-70-300,170);
+g.fillStyle='#8a909c';g.font='13px sans-serif';g.fillText('Texture bake  54%',sx+90,sy+sh-140);
+g.fillStyle='#34373f';g.fillRect(sx+90,sy+sh-124,sw-70-340,12);
+g.fillStyle='#ff9f2e';g.fillRect(sx+90,sy+sh-124,(sw-70-340)*.54,12);
+g.restore();
+// screen reflection
+let rf=g.createLinearGradient(sx,sy,sx+sw,sy+sh);rf.addColorStop(0,'rgba(255,255,255,.07)');rf.addColorStop(.4,'rgba(255,255,255,0)');
+g.fillStyle=rf;g.beginPath();g.roundRect(sx,sy,sw,sh,10);g.fill();
+// vignette
+let vi=g.createRadialGradient(W/2,H/2,H*.4,W/2,H/2,W*.7);vi.addColorStop(0,'rgba(0,0,0,0)');vi.addColorStop(1,'rgba(0,0,0,.55)');
+g.fillStyle=vi;g.fillRect(0,0,W,H);
+</script>
