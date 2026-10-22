@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import styles from '../styles/Scanner.module.css';
 
-const REPEAT_DELAY_MS = 2500;
+// A code must be out of view this long before the same code counts again,
+// so holding the camera on one barcode registers it only once.
+const SAME_CODE_GAP_MS = 2000;
 const ELEMENT_ID = 'barcode-scanner-viewport';
 
 function beep() {
@@ -26,7 +28,7 @@ function beep() {
 // Camera-based barcode / QR scanner. Calls onScan(code) for each new code read.
 export default function BarcodeScanner({ onScan }) {
   const scannerRef = useRef(null);
-  const lastScanRef = useRef({ code: null, at: 0 });
+  const lastScanRef = useRef({ code: null, seenAt: 0 });
   const onScanRef = useRef(onScan);
   const [status, setStatus] = useState('idle'); // idle | starting | scanning
   const [error, setError] = useState('');
@@ -46,14 +48,16 @@ export default function BarcodeScanner({ onScan }) {
     const code = text.trim();
     const now = Date.now();
     const last = lastScanRef.current;
-    if (code === last.code && now - last.at < REPEAT_DELAY_MS) return;
-    lastScanRef.current = { code, at: now };
+    const stillInView = code === last.code && now - last.seenAt < SAME_CODE_GAP_MS;
+    lastScanRef.current = { code, seenAt: now };
+    if (stillInView) return;
     beep();
     onScanRef.current(code);
   };
 
   const start = async () => {
     setError('');
+    lastScanRef.current = { code: null, seenAt: 0 };
     if (!window.isSecureContext) {
       setError('The camera needs a secure (https://) connection. Open the app over HTTPS, or use manual entry below.');
       return;

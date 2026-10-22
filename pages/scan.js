@@ -8,8 +8,8 @@ import styles from '../styles/Scanner.module.css';
 const LOCATION_KEY = 'bbw.scan.location';
 const MODES = [
   { id: 'lookup', label: 'Look up', hint: 'Scan to view, edit, or add a product' },
-  { id: 'in', label: 'Receive +1', hint: 'Each scan adds 1 to stock' },
-  { id: 'out', label: 'Remove −1', hint: 'Each scan removes 1 from stock' }
+  { id: 'in', label: 'Receive +1', hint: 'Each scan adds 1 to stock. To count another of the same item, move the camera off the barcode and back.' },
+  { id: 'out', label: 'Remove −1', hint: 'Each scan removes 1 from stock. To count another of the same item, move the camera off the barcode and back.' }
 ];
 
 function errorMessage(error, fallback) {
