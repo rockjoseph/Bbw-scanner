@@ -1,8 +1,9 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const { migrate } = require('../lib/schema');
 
-const dbPath = path.join(process.cwd(), 'data', 'catalog.db');
+const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'catalog.db');
 
 // Ensure data directory exists
 const dataDir = path.dirname(dbPath);
@@ -18,42 +19,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   console.log('Connected to SQLite database');
 });
 
-const schema = `
-CREATE TABLE IF NOT EXISTS products (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  sku TEXT UNIQUE,
-  category TEXT,
-  price REAL,
-  quantity INTEGER DEFAULT 0,
-  min_quantity INTEGER DEFAULT 5,
-  supplier TEXT,
-  notes TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS inventory_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  product_id INTEGER NOT NULL,
-  quantity_change INTEGER,
-  reason TEXT,
-  previous_quantity INTEGER,
-  new_quantity INTEGER,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
-CREATE INDEX IF NOT EXISTS idx_inventory_log_product ON inventory_log(product_id);
-`;
-
-db.exec(schema, (err) => {
-  if (err) {
-    console.error('Error creating schema:', err);
-    process.exit(1);
-  }
+migrate(db).then(() => {
   console.log('Database schema created successfully');
 
   // Insert sample data
@@ -61,32 +27,38 @@ db.exec(schema, (err) => {
     {
       name: 'Warm Vanilla Sugar Body Lotion',
       sku: 'WVS-LOTION-001',
+      barcode: '667556602171',
       category: 'Body Lotion',
+      location: 'Aisle 1 - Shelf A',
       price: 12.50,
       quantity: 25
     },
     {
       name: 'Japanese Cherry Blossom Shower Gel',
       sku: 'JCB-SHOWER-001',
+      barcode: '667556602188',
       category: 'Shower Gel',
+      location: 'Aisle 1 - Shelf B',
       price: 8.00,
       quantity: 40
     },
     {
       name: 'Mahogany Teakwood 3-Wick Candle',
       sku: 'MT-CANDLE-001',
+      barcode: '667556602195',
       category: 'Candle',
+      location: 'Back Room - Bin 3',
       price: 24.95,
       quantity: 15
     }
   ];
 
   const stmt = db.prepare(
-    'INSERT OR IGNORE INTO products (name, sku, category, price, quantity) VALUES (?, ?, ?, ?, ?)'
+    'INSERT OR IGNORE INTO products (name, sku, barcode, category, location, price, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)'
   );
 
   sampleProducts.forEach((product) => {
-    stmt.run([product.name, product.sku, product.category, product.price, product.quantity]);
+    stmt.run([product.name, product.sku, product.barcode, product.category, product.location, product.price, product.quantity]);
   });
 
   stmt.finalize((err) => {
@@ -104,4 +76,7 @@ db.exec(schema, (err) => {
       process.exit(0);
     });
   });
+}).catch((err) => {
+  console.error('Error creating schema:', err);
+  process.exit(1);
 });

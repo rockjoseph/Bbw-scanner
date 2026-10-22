@@ -49,6 +49,12 @@
   font-family: 'Courier New', monospace;
 }
 
+.location {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
 .category {
   display: inline-block;
   background-color: #e8e8e8;

@@ -48,6 +48,7 @@ export default function ProductList({ products, onDelete, onRefresh }) {
               <tr>
                 <th>Name</th>
                 <th>SKU</th>
+                <th>Location</th>
                 <th>Category</th>
                 <th>Price</th>
                 <th>Quantity</th>
@@ -61,12 +62,13 @@ export default function ProductList({ products, onDelete, onRefresh }) {
                 <tr key={product.id}>
                   <td>{product.name}</td>
                   <td>{product.sku}</td>
+                  <td>{product.location || '-'}</td>
                   <td>{product.category || '-'}</td>
                   <td>${product.price?.toFixed(2)}</td>
                   <td>{product.quantity}</td>
                   <td>${(product.price * product.quantity).toFixed(2)}</td>
                   <td>
-                    {product.quantity < (product.min_quantity || 5) ? (
+                    {product.quantity < (product.min_quantity ?? 5) ? (
                       <span className={styles.lowStock}>Low Stock</span>
                     ) : (
                       <span className={styles.inStock}>In Stock</span>

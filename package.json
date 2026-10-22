@@ -3,19 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
+    "dev:https": "next dev -H 0.0.0.0 --experimental-https",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "db:init": "node scripts/init-db.js"
   },
   "dependencies": {
+    "axios": "^1.6.0",
+    "html5-qrcode": "^2.3.8",
     "next": "^15.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sqlite": "^5.1.0",
-    "sqlite3": "^5.1.6",
-    "axios": "^1.6.0"
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "eslint": "^8.50.0",

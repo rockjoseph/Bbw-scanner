@@ -42,15 +42,35 @@
   padding: 12px 24px;
   border-radius: 4px;
   font-weight: 600;
-  align-self: flex-start;
-  margin-top: 8px;
 }
 
 .submitBtn:hover {
   background-color: #a41830;
 }
 
+.buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.cancelBtn {
+  background-color: #e8e8e8;
+  color: #333;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
+  .formGroup input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+
+  .buttons button {
+    flex: 1;
+  }
+
   .row {
     grid-template-columns: 1fr;
   }

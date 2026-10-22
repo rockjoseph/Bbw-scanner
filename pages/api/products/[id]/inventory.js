@@ -5,7 +5,12 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { quantity_change, reason } = req.body;
+      const quantity_change = parseInt(req.body.quantity_change);
+      const { reason } = req.body;
+
+      if (!Number.isInteger(quantity_change) || quantity_change === 0) {
+        return res.status(400).json({ error: 'quantity_change must be a non-zero integer' });
+      }
 
       const product = await getAsync(
         'SELECT quantity FROM products WHERE id = ?',
@@ -29,7 +34,8 @@ export default async function handler(req, res) {
         [newQuantity, id]
       );
 
-      res.status(200).json({ quantity: newQuantity });
+      const updated = await getAsync('SELECT * FROM products WHERE id = ?', [id]);
+      res.status(200).json(updated);
     } else if (req.method === 'GET') {
       const logs = await allAsync(
         'SELECT * FROM inventory_log WHERE product_id = ? ORDER BY created_at DESC LIMIT 20',

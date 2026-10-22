@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import axios from 'axios';
 import ProductForm from '../components/ProductForm';
 import ProductList from '../components/ProductList';
@@ -10,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -34,7 +36,8 @@ export default function Home() {
       fetchProducts();
     } catch (error) {
       console.error('Failed to add product:', error);
-      alert('Failed to add product');
+      alert(error?.response?.data?.error || 'Failed to add product');
+      return false;
     }
   };
 
@@ -51,16 +54,20 @@ export default function Home() {
   };
 
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const locations = [...new Set(products.map(p => p.location).filter(Boolean))].sort();
 
   let filteredProducts = products;
   if (searchTerm) {
+    const term = searchTerm.toLowerCase();
     filteredProducts = filteredProducts.filter(p =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+      [p.name, p.sku, p.barcode, p.location].some(v => (v || '').toLowerCase().includes(term))
     );
   }
   if (selectedCategory) {
     filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
+  }
+  if (selectedLocation) {
+    filteredProducts = filteredProducts.filter(p => p.location === selectedLocation);
   }
 
   return (
@@ -72,6 +79,10 @@ export default function Home() {
 
       <main className={styles.main}>
         <div className={styles.controls}>
+          <Link href="/scan" className={styles.scanBtn}>
+            📷 Scan Inventory
+          </Link>
+
           <button
             className={styles.addBtn}
             onClick={() => setShowForm(!showForm)}
@@ -81,7 +92,7 @@ export default function Home() {
 
           <input
             type="text"
-            placeholder="Search by name or SKU..."
+            placeholder="Search name, SKU, barcode, or location..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
@@ -99,11 +110,28 @@ export default function Home() {
               ))}
             </select>
           )}
+
+          {locations.length > 0 && (
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className={styles.categoryFilter}
+            >
+              <option value="">All Locations</option>
+              {locations.map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {showForm && (
           <div className={styles.formContainer}>
-            <ProductForm onSubmit={handleAddProduct} />
+            <ProductForm
+              onSubmit={handleAddProduct}
+              locations={locations}
+              categories={categories}
+            />
           </div>
         )}
 
@@ -119,9 +147,13 @@ export default function Home() {
             </span>
           </div>
           <div className={styles.stat}>
+            <span className={styles.statLabel}>Locations</span>
+            <span className={styles.statValue}>{locations.length}</span>
+          </div>
+          <div className={styles.stat}>
             <span className={styles.statLabel}>Low Stock</span>
             <span className={styles.statValue}>
-              {products.filter(p => p.quantity < (p.min_quantity || 5)).length}
+              {products.filter(p => p.quantity < (p.min_quantity ?? 5)).length}
             </span>
           </div>
         </div>

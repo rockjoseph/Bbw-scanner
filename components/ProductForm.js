@@ -1,16 +1,39 @@
 import { useState } from 'react';
 import styles from '../styles/Form.module.css';
 
-export default function ProductForm({ onSubmit, initialData = null }) {
-  const [formData, setFormData] = useState(initialData || {
-    name: '',
-    sku: '',
-    category: '',
-    price: '',
-    quantity: '',
-    supplier: '',
-    notes: ''
-  });
+const EMPTY = {
+  name: '',
+  sku: '',
+  barcode: '',
+  category: '',
+  location: '',
+  price: '',
+  quantity: '',
+  min_quantity: '',
+  supplier: '',
+  notes: ''
+};
+
+function toFormValues(data) {
+  const values = { ...EMPTY };
+  for (const key of Object.keys(EMPTY)) {
+    if (data && data[key] !== null && data[key] !== undefined) {
+      values[key] = String(data[key]);
+    }
+  }
+  return values;
+}
+
+export default function ProductForm({
+  onSubmit,
+  initialData = null,
+  isEdit = false,
+  locations = [],
+  categories = [],
+  submitLabel,
+  onCancel
+}) {
+  const [formData, setFormData] = useState(() => toFormValues(initialData));
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,30 +43,23 @@ export default function ProductForm({ onSubmit, initialData = null }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.sku) {
-      alert('Name and SKU are required');
+    if (!formData.name || !(formData.sku || formData.barcode)) {
+      alert('Name and SKU (or barcode) are required');
       return;
     }
 
-    onSubmit({
+    const saved = await onSubmit({
       ...formData,
       price: parseFloat(formData.price) || 0,
-      quantity: parseInt(formData.quantity) || 0
+      quantity: parseInt(formData.quantity) || 0,
+      min_quantity: formData.min_quantity === '' ? 5 : parseInt(formData.min_quantity) || 0
     });
 
-    if (!initialData) {
-      setFormData({
-        name: '',
-        sku: '',
-        category: '',
-        price: '',
-        quantity: '',
-        supplier: '',
-        notes: ''
-      });
+    if (!isEdit && saved !== false) {
+      setFormData(toFormValues(null));
     }
   };
 
@@ -59,22 +75,50 @@ export default function ProductForm({ onSubmit, initialData = null }) {
             value={formData.name}
             onChange={handleChange}
             placeholder="e.g., Warm Vanilla Sugar Body Lotion"
+            autoFocus={!isEdit}
           />
         </div>
         <div className={styles.formGroup}>
-          <label htmlFor="sku">SKU *</label>
+          <label htmlFor="barcode">Barcode / UPC</label>
+          <input
+            type="text"
+            id="barcode"
+            name="barcode"
+            value={formData.barcode}
+            onChange={handleChange}
+            placeholder="Scan or type barcode"
+            inputMode="numeric"
+          />
+        </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="sku">SKU</label>
           <input
             type="text"
             id="sku"
             name="sku"
             value={formData.sku}
             onChange={handleChange}
-            placeholder="e.g., WVS-LOTION-001"
+            placeholder="Defaults to barcode"
           />
         </div>
       </div>
 
       <div className={styles.row}>
+        <div className={styles.formGroup}>
+          <label htmlFor="location">Location</label>
+          <input
+            type="text"
+            id="location"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            placeholder="e.g., Aisle 3 - Shelf B"
+            list="location-options"
+          />
+          <datalist id="location-options">
+            {locations.map(loc => <option key={loc} value={loc} />)}
+          </datalist>
+        </div>
         <div className={styles.formGroup}>
           <label htmlFor="category">Category</label>
           <input
@@ -84,8 +128,15 @@ export default function ProductForm({ onSubmit, initialData = null }) {
             value={formData.category}
             onChange={handleChange}
             placeholder="e.g., Body Lotion"
+            list="category-options"
           />
+          <datalist id="category-options">
+            {categories.map(cat => <option key={cat} value={cat} />)}
+          </datalist>
         </div>
+      </div>
+
+      <div className={styles.row}>
         <div className={styles.formGroup}>
           <label htmlFor="price">Price ($)</label>
           <input
@@ -96,6 +147,7 @@ export default function ProductForm({ onSubmit, initialData = null }) {
             onChange={handleChange}
             placeholder="0.00"
             step="0.01"
+            inputMode="decimal"
           />
         </div>
         <div className={styles.formGroup}>
@@ -107,6 +159,19 @@ export default function ProductForm({ onSubmit, initialData = null }) {
             value={formData.quantity}
             onChange={handleChange}
             placeholder="0"
+            inputMode="numeric"
+          />
+        </div>
+        <div className={styles.formGroup}>
+          <label htmlFor="min_quantity">Low-stock alert at</label>
+          <input
+            type="number"
+            id="min_quantity"
+            name="min_quantity"
+            value={formData.min_quantity}
+            onChange={handleChange}
+            placeholder="5"
+            inputMode="numeric"
           />
         </div>
       </div>
@@ -136,9 +201,16 @@ export default function ProductForm({ onSubmit, initialData = null }) {
         </div>
       </div>
 
-      <button type="submit" className={styles.submitBtn}>
-        {initialData ? 'Update Product' : 'Add Product'}
-      </button>
+      <div className={styles.buttons}>
+        <button type="submit" className={styles.submitBtn}>
+          {submitLabel || (isEdit ? 'Save Changes' : 'Add Product')}
+        </button>
+        {onCancel && (
+          <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

@@ -8,7 +8,7 @@ export default function ProductCard({ product, onDelete, onRefresh }) {
   const [inventoryReason, setInventoryReason] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const lowStock = product.quantity < (product.min_quantity || 5);
+  const lowStock = product.quantity < (product.min_quantity ?? 5);
   const itemValue = (product.price * product.quantity).toFixed(2);
 
   const handleInventoryUpdate = async (e) => {
@@ -40,7 +40,14 @@ export default function ProductCard({ product, onDelete, onRefresh }) {
         {lowStock && <span className={styles.badge}>Low Stock</span>}
       </div>
 
-      <div className={styles.sku}>{product.sku}</div>
+      <div className={styles.sku}>
+        {product.sku}
+        {product.barcode && product.barcode !== product.sku && ` · ${product.barcode}`}
+      </div>
+
+      <div className={styles.location}>
+        📍 {product.location || 'No location set'}
+      </div>
 
       {product.category && (
         <div className={styles.category}>{product.category}</div>
